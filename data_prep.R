@@ -12,6 +12,7 @@ occupations <- readRDS("data_raw/Occupations.rds")
 cips <- readRDS("data_raw/CIP_List.rds")
 
 schools <- readRDS("data_raw/Schools.rds")
+aw_degree <- readRDS("data_raw/AW_Degree.rds")
 
 # --- SCM/OR scope ---
 # CIP codes: Operations Research, Purchasing/Procurement, Logistics/SCM, Management Science
@@ -33,3 +34,25 @@ scm_or_socs <- c("13-1081", "15-2031", "11-3071", "11-3061", "11-3051", "13-1111
 # --- Filtered dataset ---
 filtered_backbone <- backbone %>%
   filter(CIPCODE %in% scm_or_cips, OCCCODE %in% scm_or_socs)
+
+# --- Join in school, occupation, and degree-level names ---
+# Validated 2026-07-16: row count holds at 2,518 (no duplicate-key
+# inflation from either lookup table) and zero NAs on all three joined
+# name columns (no unmatched UNITID/OCCCODE/AWLEVEL keys). The assertions
+# below re-check both conditions on every run so a future data_raw/
+# refresh can't silently break this join without being noticed.
+scm_or_full <- filtered_backbone %>%
+  left_join(schools, by = "UNITID") %>%
+  left_join(occupations, by = "OCCCODE") %>%
+  left_join(aw_degree, by = "AWLEVEL")
+
+stopifnot(
+  "join changed row count -- check for duplicate keys in schools/occupations/aw_degree" =
+    nrow(scm_or_full) == nrow(filtered_backbone),
+  "unmatched UNITID -- some schools not found in Schools.rds" =
+    sum(is.na(scm_or_full$INSTNM)) == 0,
+  "unmatched OCCCODE -- some occupations not found in Occupations.rds" =
+    sum(is.na(scm_or_full$OCCNAME)) == 0,
+  "unmatched AWLEVEL -- some degree levels not found in AW_Degree.rds" =
+    sum(is.na(scm_or_full$LEVELName)) == 0
+)
