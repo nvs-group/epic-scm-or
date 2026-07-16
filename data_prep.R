@@ -35,20 +35,23 @@ scm_or_socs <- c("13-1081", "15-2031", "11-3071", "11-3061", "11-3051", "13-1111
 filtered_backbone <- backbone %>%
   filter(CIPCODE %in% scm_or_cips, OCCCODE %in% scm_or_socs)
 
-# --- Join in school, occupation, and degree-level names ---
+# --- Join in CIP, school, occupation, and degree-level names ---
 # Validated 2026-07-16: row count holds at 2,518 (no duplicate-key
-# inflation from either lookup table) and zero NAs on all three joined
-# name columns (no unmatched UNITID/OCCCODE/AWLEVEL keys). The assertions
-# below re-check both conditions on every run so a future data_raw/
+# inflation from any lookup table) and zero NAs on all joined name
+# columns (no unmatched CIPCODE/UNITID/OCCCODE/AWLEVEL keys). The
+# assertions below re-check these on every run so a future data_raw/
 # refresh can't silently break this join without being noticed.
 scm_or_full <- filtered_backbone %>%
+  left_join(cips, by = "CIPCODE") %>%
   left_join(schools, by = "UNITID") %>%
   left_join(occupations, by = "OCCCODE") %>%
   left_join(aw_degree, by = "AWLEVEL")
 
 stopifnot(
-  "join changed row count -- check for duplicate keys in schools/occupations/aw_degree" =
+  "join changed row count -- check for duplicate keys in cips/schools/occupations/aw_degree" =
     nrow(scm_or_full) == nrow(filtered_backbone),
+  "unmatched CIPCODE -- some CIP codes not found in CIP_List.rds" =
+    sum(is.na(scm_or_full$CIPNAME)) == 0,
   "unmatched UNITID -- some schools not found in Schools.rds" =
     sum(is.na(scm_or_full$INSTNM)) == 0,
   "unmatched OCCCODE -- some occupations not found in Occupations.rds" =
@@ -57,17 +60,29 @@ stopifnot(
     sum(is.na(scm_or_full$LEVELName)) == 0
 )
 
-
-
+# --- Explore Programs table ---
+# Columns for browsing/comparing schools offering SCM/OR-relevant CIP codes.
+# Deliberately lean for v1 -- room & board, admission rate, and enrollment
+# size are left out for now but easy to add back via this select() if a
+# richer comparison view is wanted later.
 explore_programs <- scm_or_full %>%
   select(UNITID, INSTNM, CITY, STABBR, CIPCODE, CIPNAME, AWLEVEL, LEVELName,
          TotCstOutLo, TotCstOutHi, TotCstInLo, TotCstInHi, IGRNT_P, pc150) %>%
   distinct()
 
+# --- Explore Careers table ---
+# Columns for browsing/comparing the six target SCM/OR occupations.
+# Raw employment counts and mid-career trajectory data left out for v1 --
+# the comparison chart covers trajectory visually, so it'd be redundant here.
 explore_careers <- scm_or_full %>%
   select(OCCCODE, OCCNAME, X17p, X50p, X82p, EmplyPC, Entry_Degree, Experience) %>%
   distinct()
 
+# --- Scenario data ---
+# Fuller table the scenario builder and ROI calculation draw from.
+# Not meant for direct display -- includes fields (Years, MedOccF) that
+# feed the cash-flow math but aren't meaningful to show in a table on
+# their own.
 scenario_data <- scm_or_full %>%
   select(UNITID, INSTNM, CIPCODE, CIPNAME, AWLEVEL, LEVELName, Years,
          TotCstOutLo, OCCCODE, OCCNAME, X17p, MedOccF)
