@@ -56,3 +56,18 @@ stopifnot(
   "unmatched AWLEVEL -- some degree levels not found in AW_Degree.rds" =
     sum(is.na(scm_or_full$LEVELName)) == 0
 )
+
+
+
+explore_programs <- scm_or_full %>%
+  select(UNITID, INSTNM, CITY, STABBR, CIPCODE, CIPNAME, AWLEVEL, LEVELName,
+         TotCstOutLo, TotCstOutHi, TotCstInLo, TotCstInHi, IGRNT_P, pc150) %>%
+  distinct()
+
+explore_careers <- scm_or_full %>%
+  select(OCCCODE, OCCNAME, X17p, X50p, X82p, EmplyPC, Entry_Degree, Experience) %>%
+  distinct()
+
+scenario_data <- scm_or_full %>%
+  select(UNITID, INSTNM, CIPCODE, CIPNAME, AWLEVEL, LEVELName, Years,
+         TotCstOutLo, OCCCODE, OCCNAME, X17p, MedOccF)
