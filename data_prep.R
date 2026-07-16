@@ -3,12 +3,8 @@ library(dplyr)
 # --- Load raw data ---
 backbone <- readRDS("data_raw/Backbone.rds")
 occupations <- readRDS("data_raw/Occupations.rds")
-cips <- readRDS("data_raw/CIP_List.rds")
+cips <- readRDS("data_raw/CIP_List_20260716.rds")
 schools <- readRDS("data_raw/Schools.rds")
-
-# --- Standardize column names across source files ---
-cips <- cips %>%
-  rename(CIPCODE = Codevalue, CIPNAME = valueLabel)
 
 # --- SCM/OR scope ---
 # CIP codes: Operations Research, Purchasing/Procurement, Logistics/SCM, Management Science
